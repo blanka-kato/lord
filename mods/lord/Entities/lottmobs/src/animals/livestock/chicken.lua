@@ -1,76 +1,5 @@
-local SL = minetest.get_mod_translator()
+local S = minetest.get_mod_translator()
 
-archery.register_throwable("lottmobs:egg", {
-	definition = {
-		description      = SL("Chicken Egg"),
-		inventory_image  = "lottmobs_egg", -- without ".png"
-		groups           = { throwable = 1 },
-		wield_scale      = vector.new(1, 1, 0.5),
-		--sound_on_release = "lord_archery_arrow_release",
-		draw_power       = 0.5,
-		just_an_item     = true,
-	},
-	stage_conf = {
-		charging_time = {
-			[0] = 0,
-			[1] = 0.25,
-			[2] = 0.5,
-		},
-	},
-	projectile_reg = {
-		type        = "throwable",
-		damage_tt   = 1,
-		entity_name = "lottmobs:egg",
-		entity_reg  = {
-			initial_properties = {
-				visual    = "item",
-				wield_item = "lottmobs:egg",
-				visual_size = vector.new(0.25, 0.25, 0.25),
-			},
-			max_speed        = 20,
-			--sound_hit_node   = { name = "lord_projectiles_explosion", gain = 3.0 },
-			--sound_hit_object = { name = "lord_projectiles_explosion", gain = 3.0 },
-			damage_groups    = { fleshy = 1, },
-			rotation_formula = "rolling",
-			on_hit_node      = function(projectile, node_pos, move_result)
-				local spawn_chicken = math.random(1, 20) == 1
-				if spawn_chicken then
-					minetest.add_entity(projectile.object:get_pos(), "lottmobs:chicken")
-				end
-				local radius = 0.5
-				local rad_vec = vector.new(radius, radius, radius)
-				local min_pos = vector.subtract(node_pos, rad_vec)
-				local max_pos = vector.add(node_pos, rad_vec)
-				minetest.add_particlespawner({
-					pos = {
-						min = min_pos,
-						max = max_pos,
-					},
-					time = 0.1,
-					amount = 10,
-					size = { min = 1, max = 3 },
-					texture = {
-						name = "lottmobs_egg.png",
-						alpha_tween = { 1, 0 },
-						scale = 1,
-					},
-					vel = {
-						min = vector.new(-2, 3, -2),
-						max = vector.new(2, 7, 2),
-					},
-					acc = {
-						min = vector.new(-0, -9.81, -0),
-						max = vector.new(0, -9.81, 0),
-					},
-					exptime = { min = 0.1, max = 2 },
-				})
-			end,
-			after_hit_node   = function(projectile)
-				projectile.object:remove()
-			end
-		}
-	}
-})
 
 mobs:register_mob("lottmobs:chicken", {
 	type = "animal",
@@ -90,7 +19,8 @@ mobs:register_mob("lottmobs:chicken", {
 	walk_velocity = 1,
 	armor = 300,
 	drops = {
-		{ name = "lottmobs:chicken_raw", chance = 1, min = 0, max = 1, },
+		{ name = "lottmobs:chicken_raw", chance = 1, min = 1, max = 1, },
+		{ name = "mobs:chicken_feather", chance = 1, min = 0, max = 2  },
 		{ name = "lottmobs:egg",         chance = 1, min = 0, max = 1, },
 	},
 	light_resistant = true,
@@ -113,4 +43,87 @@ mobs:register_mob("lottmobs:chicken", {
 	jump = true,
 	step=1,
 	passive = true,
+
+	on_rightclick = function(self, clicker)
+		local inv = clicker:get_inventory()
+		if inv:contains_item("main", "farming:seed_wheat") then
+			-- Удаляем одно семя пшеницы из инвентаря игрока
+			inv:remove_item("main", "farming:seed_wheat 1")
+			-- Шанс дропа 25%
+			local chance = math.random(1, 4)
+			if chance == 1 then
+				-- Возвращаем яйцо
+				minetest.add_item(self.object:get_pos(), "lottmobs:egg")
+				minetest.chat_send_player(clicker:get_player_name(), "Курица снесла яйцо!")
+			else
+				minetest.chat_send_player(clicker:get_player_name(), "Курица не снесла яйцо.")
+			end
+		else
+			minetest.chat_send_player(clicker:get_player_name(), "У вас нет семян пшеницы!")
+		end
+	end,
+})
+
+-- Chicken Farming: feeding, egg drop and hatching
+minetest.register_node("lottmobs:egg", {
+    description = S("Chicken Egg"),
+    tiles = {"lottmobs_egg.png"},
+    inventory_image  = "lottmobs_egg.png",
+    visual_scale = 0.7,
+    drawtype = "plantlike",
+    wield_image = "lottmobs_egg.png",
+    paramtype = "light",
+    walkable = false,
+    selection_box = {
+		type = "fixed",
+		fixed = {-4 / 16, -0.5, -4 / 16, 4 / 16, 4.5 / 16, 4 / 16},
+	},
+    groups = {snappy = 2, dig_immediate = 3},
+    on_place = function(itemstack, placer, pointed_thing)
+        -- Проверяем, что игрок кликает по блоку (не по объекту)
+        if pointed_thing.type == "node" then
+            local under_pos = pointed_thing.under
+            local above_pos = pointed_thing.above
+            local node_under = minetest.get_node(under_pos)
+
+            if node_under.name == "farming:straw" then
+                -- Ограничиваем размещение, если над соломой уже стоит не воздух
+                local node_above = minetest.get_node_or_nil(above_pos)
+                if node_above and node_above.name ~= "air" and placer then
+                    minetest.chat_send_player(placer:get_player_name(), S(
+						"Egg can only be placed on top of an empty block above straw."))
+
+                    return itemstack
+                end
+
+                -- Удаляем яйцо из инвентаря
+                itemstack:take_item()
+
+                -- Размещаем яйцо над соломой
+                minetest.set_node(above_pos, {name = "lottmobs:egg"})
+
+                -- Таймер на 10 секунд (5 минут) для превращения яйца в цыплёнка
+                local owner_name = placer and placer:get_player_name() or ""
+                minetest.after(10, function()
+                    local cur_node = minetest.get_node(above_pos)
+                    if cur_node and cur_node.name == "lottmobs:egg" then
+                        minetest.add_entity(above_pos, "lottmobs:chicken")
+                        -- Удаляем ноду яйца после спавна моба
+                        minetest.remove_node(above_pos)
+                    end
+                end)
+
+                return itemstack
+            else
+                -- Если блок под курсором не является "farming:straw", ничего не делаем
+                minetest.chat_send_player(placer:get_player_name(), S(
+					"Egg can only be placed on a straw block."))
+
+                return itemstack
+            end
+        end
+
+        -- Если не удалось корректно определить узел, возвращаем обычное размещение
+        return minetest.item_place(itemstack, placer, pointed_thing)
+    end,
 })
