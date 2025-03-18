@@ -188,70 +188,98 @@ minetest.register_abm({
 	end
 })
 minetest.register_abm({
-	nodenames = "lottfarming:corn_2",
-	interval  = interval,
-	chance    = chance,
-	action    = function(pos, node)
-		pos.y = pos.y - 1
-		if minetest.get_node(pos).name ~= "farming:soil_wet" then
-			return
-		end
-		pos.y = pos.y + 1
-		if not minetest.get_node_light(pos) then
-			return
-		end
-		if minetest.get_node_light(pos) < 8 then
-			return
-		end
-		pos.y = pos.y + 1
-		minetest.set_node(pos, { name = 'lottfarming:corn_21', param2 = 3 })
-		pos.y = pos.y - 1
-		minetest.set_node(pos, { name = 'lottfarming:corn_3', param2 = 3 })
+    nodenames = "lottfarming:corn_2",
+    interval  = interval,
+    chance    = chance,
+    action    = function(pos, node)
+        pos.y = pos.y - 1
+        if minetest.get_node(pos).name ~= "farming:soil_wet" then
+            return
+        end
+        pos.y = pos.y + 1
+        if not minetest.get_node_light(pos) then
+            return
+        end
+        if minetest.get_node_light(pos) < 8 then
+            return
+        end
+        pos.y = pos.y + 1
+        if minetest.get_node(pos).name ~= "air" then
+            return
+        end
+        pos.y = pos.y + 1
+        if minetest.get_node(pos).name ~= "air" then
+            return
+        end
+        pos.y = pos.y - 1
+        minetest.set_node(pos, { name = 'lottfarming:corn_21', param2 = 3 })
+        pos.y = pos.y - 1
+        minetest.set_node(pos, { name = 'lottfarming:corn_3', param2 = 3 })
 
-	end
+    end
 })
 minetest.register_abm({
-	nodenames = "lottfarming:corn_3",
-	interval  = interval,
-	chance    = chance,
-	action    = function(pos, node)
-		pos.y = pos.y - 1
-		if minetest.get_node(pos).name ~= "farming:soil_wet" then
-			return
-		end
-		pos.y = pos.y + 1
-		if not minetest.get_node_light(pos) then
-			return
-		end
-		if minetest.get_node_light(pos) < 8 then
-			return
-		end
-		pos.y = pos.y + 1
-		pos.y = pos.y + 1
-		minetest.set_node(pos, { name = 'lottfarming:corn_31', param2 = 3 })
-		pos.y = pos.y - 1
-
+    nodenames = "lottfarming:corn_3",
+    interval  = interval,
+    chance    = chance,
+    action    = function(pos, node)
+        pos.y = pos.y - 1
+        if minetest.get_node(pos).name ~= "farming:soil_wet" then
+            return
+        end
+        pos.y = pos.y + 1
+        if not minetest.get_node_light(pos) then
+            return
+        end
+        if minetest.get_node_light(pos) < 8 then
+            return
+        end
+        pos.y = pos.y + 1
+        if minetest.get_node(pos).name ~= "air" then
+            return
+        end
+        pos.y = pos.y + 1
+        if minetest.get_node(pos).name ~= "air" then
+            return
+        end
+        pos.y = pos.y + 1
+        if minetest.get_node(pos).name ~= "air" then
+            return
+        end
+        pos.y = pos.y - 1
+        pos.y = pos.y - 1
+        minetest.set_node(pos, { name = 'lottfarming:corn_31', param2 = 3 })
+        pos.y = pos.y - 1
+		
 		minetest.set_node(pos, { name = 'lottfarming:corn_22', param2 = 3 })
-		pos.y = pos.y - 1
-		minetest.set_node(pos, { name = 'lottfarming:corn_4', param2 = 3 })
+        pos.y = pos.y - 1
+        minetest.set_node(pos, { name = 'lottfarming:corn_4', param2 = 3 })
 
-	end
+    end
 })
 minetest.register_abm({
-	nodenames = "lottfarming:corn_22",
-	interval  = interval,
-	chance    = chance,
-	action    = function(pos, node)
-		if not minetest.get_node_light(pos) then
-			return
-		end
-		if minetest.get_node_light(pos) < 8 then
-			return
-		end
-		pos.y = pos.y + 1
-		minetest.set_node(pos, { name = 'lottfarming:corn_32', param2 = 3 })
-		pos.y = pos.y - 1
-		minetest.set_node(pos, { name = 'lottfarming:corn_23', param2 = 3 })
-
-	end
+    nodenames = "lottfarming:corn_22",
+    interval  = interval,
+    chance    = chance,
+    action    = function(pos, node)
+        if not minetest.get_node_light(pos) then
+            return
+        end
+        if minetest.get_node_light(pos) < 8 then
+            return
+        end
+        pos.y = pos.y + 1
+        if minetest.get_node(pos).name ~= "air" then
+            return
+        end
+        pos.y = pos.y + 1
+        if minetest.get_node(pos).name ~= "air" then
+            return
+        end
+        pos.y = pos.y - 1
+        minetest.set_node(pos, { name = 'lottfarming:corn_32', param2 = 3 })
+        pos.y = pos.y - 1
+        minetest.set_node(pos, { name = 'lottfarming:corn_23', param2 = 3 })
+		
+    end
 })
