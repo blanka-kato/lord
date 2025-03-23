@@ -132,6 +132,7 @@ protector.can_dig = function(r, pos, digger, onlyowner, infolevel)
 
 	local dig_player = minetest.get_player_by_name(digger)
 	local meta, owner, members
+	local math_floor, math_pi = math.floor, math.pi
 	for _, p in ipairs(positions) do
 		meta = minetest.get_meta(p)
 		owner = meta:get_string("owner")
@@ -141,6 +142,25 @@ protector.can_dig = function(r, pos, digger, onlyowner, infolevel)
 			if onlyowner or not protector.is_member(meta, digger) then
 				if infolevel == 1 then
 					minetest.get_player_by_name(digger):set_hp(dig_player:get_hp()-protector.damage)
+					if nodedef.groups["door"] then
+						local yaw = dig_player:get_look_horizontal() + math_pi
+	
+						if yaw > 2 * math_pi then
+							yaw = yaw - 2 * math_pi
+						end
+			
+						dig_player:set_look_horizontal(yaw)
+			
+						-- invert pitch
+						dig_player:set_look_vertical(-dig_player:get_look_vertical())
+			
+						-- if digging below player, move up to avoid falling through hole
+						local pla_pos = dig_player:get_pos()
+			
+						if pos.y < pla_pos.y then
+							dig_player:set_pos({x = pla_pos.x, y = pla_pos.y + 0.8, z = pla_pos.z})
+						end
+					end
 					minetest.chat_send_player(digger,
 					S("This area is owned by").." " .. owner .. "!")
 				elseif infolevel == 2 then
