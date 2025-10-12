@@ -107,4 +107,34 @@ minetest.register_node('lottfarming:pumpkin_3', {
 	sounds      = default.node_sound_wood_defaults(),
 })
 
+-- ========= Jack-o-lantern =========
+
+local colorful_description = minetest.colorize('#B380FF' , S('Happy Halloween from Jack!'))
+
+minetest.register_node('lottfarming:pumpkin_jack_o_lantern', {
+	description         = colorful_description,
+	sunlight_propagates = true,
+	light_source        = 14,
+	tiles               = {
+		'lottfarming_pumpkin_top.png',
+		'lottfarming_pumpkin_back.png',
+		'lottfarming_pumpkin_side.png',
+		'lottfarming_pumpkin_side.png',
+		'lottfarming_pumpkin_side.png',
+		'lottfarming_pumpkin_side.png^lottfarming_pumpkin_face_light_on.png',
+	},
+	groups              = { choppy = 2, oddly_breakable_by_hand = 1, flammable = 2 },
+	paramtype           = 'light',
+	paramtype2          = 'facedir',
+	sounds              = default.node_sound_wood_defaults(),
+})
+
+minetest.register_craft({
+	output = 'lottfarming:pumpkin_jack_o_lantern',
+	recipe = {
+		{ 'default:torch' },
+		{ 'lottfarming:pumpkin_3' },
+	},
+})
+
 farming:add_plant('lottfarming:pumpkin_3', { 'lottfarming:pumpkin_1', 'lottfarming:pumpkin_2' }, 50, 20)
