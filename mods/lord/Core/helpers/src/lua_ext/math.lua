@@ -6,6 +6,7 @@ local math_min, math_max, math_sqrt, math_cos, math_sin
 --- If the number is lower than the minimum, the minimum value is returned.
 --- If the number is higher than the maximum, the maximum value is returned.
 ---
+--- @overload fun(value:integer, min:integer, max:integer)
 --- @param value number
 --- @param min   number
 --- @param max   number
