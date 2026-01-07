@@ -102,8 +102,12 @@ exclude_files     = {
 -- Don't report on legacy definitions of globals.
 files["mods/_minetest_game/default/legacy.lua"].global = false
 
+-- Extend built-in globals only in specific files:
+files["mods/lord/Core/builtin_ext/src/**/*.lua"] = {
+	globals = { "VoxelArea", },
+}
 
--- Lua extending:
+-- Lua extending only in specific files:
 files["mods/lord/Core/helpers/src/lua_ext/**/*.lua"] = {
 	globals = { "table", "string", "math", "io", "os", "debug" }
 }
