@@ -1,5 +1,5 @@
-local type, math_random, v,          id
-    = type, math.random, vector.new, core.get_content_id
+local type, math_floor, math_random, math_is_among, vector_sort, v,          id
+    = type, math.floor, math.random, math.is_among, vector.sort, vector.new, core.get_content_id
 
 
 local id_air = id('air')
@@ -91,14 +91,35 @@ function VoxelArea:fill_with(node_id, from, to)
 end
 
 --- Places a pile of nodes randomly within the specified area in cuboid [from, to].
---- @param node_id integer|integer[] if is array, random nodes will be placed.
---- @param from?   Position          position from which to start placing pile.
---- @param to?     Position          position to which to place pile.
---- @param param2? integer|integer[] if is array, random param2 will be set.
+--- Nodes are only placed above non-air nodes, with a 50% chance at each valid position.
+--- Note: Preloaded node IDs are recommended for better performance; use `core.get_content_id(name)` to preload.
+--- Cubaoid [from, to] is inclusive and will be sorted automatically.
+---
+--- @param node_id   integer|integer[] if is array, random nodes will be placed.
+--- @param from?     Position          position from which to start placing pile.
+--- @param to?       Position          position to which to place pile.
+--- @param peak?     Position          peak position of the pile.
+--- @param fillness? number            fillness of the pile, 0..1 (default is 0.75).
+--- @param param2?   integer|integer[] if is array, random param2 will be set.
+---
 --- @return self
-function VoxelArea:place_pile(node_id, from, to, param2)
-	from = from or self.MinEdge
-	to   = to   or self.MaxEdge
+function VoxelArea:place_pile(node_id, from, to, peak, fillness, param2)
+	from     = from     or self.MinEdge
+	to       = to       or self.MaxEdge
+	fillness = fillness or 0.75
+	from, to = vector_sort(from, to)
+
+	peak = peak or v(
+		math_floor((from.x + to.x) / 2),
+		to.y,
+		math_floor((from.z + to.z) / 2)
+	)
+	local height = to.y - from.y + 1
+	-- Deltas from peak to sides of base of pile (pyramid)
+	local peak_from_dx = peak.x - from.x
+	local peak_from_dz = peak.z - from.z
+	local peak_to_dx   = to.x - peak.x
+	local peak_to_dz   = to.z - peak.z
 
 	local data = self.data
 
@@ -110,15 +131,28 @@ function VoxelArea:place_pile(node_id, from, to, param2)
 	self:foreach(from, to, function(i)
 
 		local pos = self:position(i)
+
 		-- place above, only if below is not air
 		local below_i = self:indexp(v(pos) - v(0, 1, 0))
 		local is_below_inside = self:containsi(below_i)
+		if not (
+			not is_below_inside
+			or (is_below_inside and data[below_i] ~= id_air)
+		) then
+			return
+		end
+
+		local layer = pos.y - from.y -- 0..height-1
+
+		local layer_from_dx = from.x + peak_from_dx * layer / height
+		local layer_to_dx   = to.x   - peak_to_dx   * layer / height
+		local layer_from_dz = from.z + peak_from_dz * layer / height
+		local layer_to_dz   = to.z   - peak_to_dz   * layer / height
+
 		if
-			(
-				not is_below_inside
-				or (is_below_inside and data[below_i] ~= id_air)
-			)
-			and math_random() <= 0.5
+			math_is_among(pos.x, layer_from_dx, layer_to_dx) and
+			math_is_among(pos.z, layer_from_dz, layer_to_dz) and
+			math_random() <= fillness
 		then
 			data[i] = is_random
 				and node_id[math_random(nodes_count)]
