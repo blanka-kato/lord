@@ -15,6 +15,7 @@ require('stack')
 require('craft')
 require('Texture')
 require('Tile')
+require('vector')
 
 
 require = old_require

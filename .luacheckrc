@@ -104,7 +104,7 @@ files["mods/_minetest_game/default/legacy.lua"].global = false
 
 -- Extend built-in globals only in specific files:
 files["mods/lord/Core/builtin_ext/src/**/*.lua"] = {
-	globals = { "VoxelArea", },
+	globals = { "VoxelArea", "vector" },
 }
 
 -- Lua extending only in specific files:
