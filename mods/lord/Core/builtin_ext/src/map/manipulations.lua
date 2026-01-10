@@ -34,7 +34,9 @@ function core.with_map_part_do(pos1, pos2, callback, is_on_mapgen, with_param2, 
 	voxel_manipulator:set_data(data)
 	if with_param2 then   voxel_manipulator:set_param2_data(param2_data)  end
 	if with_light  then   voxel_manipulator:set_light_data(light_data)    end
-	voxel_manipulator:set_lighting({ day = 0, night = 0 })
-	voxel_manipulator:calc_lighting()
+	if is_on_mapgen then
+		voxel_manipulator:set_lighting({ day = 0, night = 0 })
+		voxel_manipulator:calc_lighting()
+	end
 	voxel_manipulator:write_to_map(true)
 end
