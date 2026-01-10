@@ -25,14 +25,16 @@ end
 --- ```lua
 --- vox_area:foreach(function(i, data, data_param2, data_light)
 ---    data[i] = id('default:stone') -- id('default:stone') <==> core.get_content_id('default:stone')
+---
+---    return true -- [optional] return true if you want to break `foreach` loop
 --- end)
 --- ```
---- Note: use preloaded ids for better performance.
+--- **Note:** use preloaded ids for better performance.
 ---
---- @overload fun(callback: fun(i:integer, data:integer[], data_param2:integer[], data_light:integer[])):self
+--- @overload fun(callback: fun(i:integer, data:integer[], data_param2:integer[], data_light:integer[]):boolean?):self
 --- @param from Position
 --- @param to   Position
---- @param callback fun(i:integer, data:integer[], data_param2:integer[], data_light:integer[])
+--- @param callback fun(i:integer, data:integer[], data_param2:integer[], data_light:integer[]):boolean?
 --- @return self
 function VoxelArea:foreach(from, to, callback)
 	if type(from) == 'function' then
@@ -43,7 +45,7 @@ function VoxelArea:foreach(from, to, callback)
 
 	local data = self.data
 	for i in self:iterp(from, to) do
-		callback(i, data)
+		if callback(i, data) then  break  end
 	end
 
 	return self
@@ -64,30 +66,96 @@ function VoxelArea:set_node_at(position, node_id, param2, light)
 	return self
 end
 
---- Sets all nodes in the specified area to the given node ID or random IDs.
---- @param node_id integer|integer[] if is array of integers, than area part wil be filled with random nodes from it.
---- @param from?   Position
---- @param to?     Position
+--- Calculates the fraction of the area occupied by the specified node ID(s).
+--- @param node_id table|integer if table, counts all IDs in the table.
+--- @return number # content of area occupied by the node ID (0..1)
+function VoxelArea:content_of(node_id)
+	--- @type integer[]
+	node_id = type(node_id) == 'table' and node_id or { node_id }
+
+	local count = 0
+	self:foreach(function(i, data, data_param2, data_light)
+		if table.contains(node_id, data[i]) then
+			count = count + 1
+		end
+	end)
+
+	return count / self:getVolume()
+end
+
+--- @protected
+--- @param node_id integer|integer[]
+--- @param from   Position
+--- @param to     Position
+--- @param chance number
 ---
 --- @return self
-function VoxelArea:fill_with(node_id, from, to)
-	from = from or self.MinEdge
-	to   = to   or self.MaxEdge
-	local data = self.data
-
-	local is_random = type(node_id) == 'table'
-	if is_random then
-		local nodes_count = #node_id
-		for i in self:iterp(from, to) do
-			data[i] = node_id[math_random(nodes_count)]
-		end
-	else
-		for i in self:iterp(from, to) do
-			data[i] = node_id
+function VoxelArea:fill_with_chance(node_id, from, to, chance)
+	local is_random   = type(node_id) == 'table'
+	local nodes_count = is_random and #node_id or 0
+	local data        = self.data
+	for i in self:iterp(from, to) do
+		if math_random() <= chance then
+			data[i] = is_random
+				and node_id[math_random(nodes_count)]
+				or  node_id--[[@as integer]]
 		end
 	end
 
 	return self
+end
+
+--- Sets all nodes in the specified area to the given node ID or random IDs.
+--- @param node_id integer|integer[] if is array of integers, than area part wil be filled with random nodes from it.
+--- @param from?   Position          position from which to start filling.
+--- @param to?     Position          position to which to fill.
+--- @param chance? number            chance to fill each node (0..1), default is 1 (fill all).
+---
+--- @return self
+function VoxelArea:fill_with(node_id, from, to, chance)
+	from   = from   or self.MinEdge
+	to     = to     or self.MaxEdge
+
+	if chance and chance < 1 then
+		return self:fill_with_chance(node_id, from, to, chance)
+	end
+
+	local is_random   = type(node_id) == 'table'
+	local nodes_count = is_random and #node_id or 0
+	local data        = self.data
+	for i in self:iterp(from, to) do
+		data[i] = is_random
+			and node_id[math_random(nodes_count)]
+			or  node_id--[[@as integer]]
+	end
+
+	return self
+end
+
+--- Checks if the node at the specified position matches the given node ID.
+--- @param position       vector|nil if nil, returns false.
+--- @param node_id        integer    node ID to check against.
+--- @param check_contain? boolean    if true, checks if position is inside area, default is false.
+--- @return boolean
+function VoxelArea:is(position, node_id, check_contain)
+	check_contain = check_contain or false
+
+	return position and (not check_contain or self:containsp(position))
+		and self.data[self:indexp(position)] == node_id
+		or  false
+end
+
+--- Checks if the node at the specified position does not match the given node ID.
+--- @param position       vector|nil if nil, returns false.
+--- @param node_id        integer    node ID to check against.
+--- @param check_contain? boolean    if true, checks if position is inside area, default is false.
+--- @return boolean
+function VoxelArea:is_not(position, node_id, check_contain)
+	check_contain = check_contain or false
+
+	return position and (not check_contain or self:containsp(position))
+		and self.data[self:indexp(position)] ~= node_id
+		or  false
 end
 
 --- Places a pile of nodes randomly within the specified area in cuboid [from, to].
@@ -130,15 +198,10 @@ function VoxelArea:place_pile(node_id, from, to, peak, fillness, param2)
 
 	self:foreach(from, to, function(i)
 
-		local pos = self:position(i)
+		local pos = v(self:position(i))
 
 		-- place above, only if below is not air
-		local below_i = self:indexp(v(pos) - v(0, 1, 0))
-		local is_below_inside = self:containsi(below_i)
-		if not (
-			not is_below_inside
-			or (is_below_inside and data[below_i] ~= id_air)
-		) then
+		if self:is(pos:under(), id_air, true) then
 			return
 		end
 
